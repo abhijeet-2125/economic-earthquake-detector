@@ -1,0 +1,138 @@
+import numpy as np
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+import pandas as pd
+from sqlalchemy import text
+from backend.database.database import engine
+
+
+query = """SELECT * FROM market_data"""
+
+df = pd.read_sql(text(query),engine)
+
+df["date"] = pd.to_datetime(df["date"])
+df = df.sort_values(["ticker", "date"])
+
+print("Generating features.....")
+feature_dfs = []
+for ticker, group in df.groupby("ticker"):
+    group = group.copy()
+
+    # Daily Return
+    group["daily_return"] = (group["close"].pct_change())
+    group["log_return"] = np.log(group["close"]/group["close"].shift(1))
+
+    # EMA
+    group["ema_7"] = (group["close"].ewm(span=7, adjust=False).mean())
+    group["ema_30"] = (group["close"].ewm(span=30, adjust=False).mean())
+    group["ema_90"] = (group["close"].ewm(span=90, adjust=False).mean())
+
+    # Rolling Volatility
+    group["rolling_volatility_30"] = (group["daily_return"].rolling(30).std())
+
+    # Drawdown
+    rolling_peak = (group["close"].cummax())
+    group["drawdown"] = ((group["close"] - rolling_peak)/rolling_peak)
+    feature_dfs.append(group)
+
+    #volatility shock
+    group["volatility_shock"] = (group["rolling_volatility_30"]-group["rolling_volatility_30"].ewm(span=90, adjust=False).mean())
+
+    #Momentum spread
+    group["momentum_spread"] = (group["ema_7"]-group["ema_90"]) / group["ema_90"]
+
+    #PER ASSET STREss
+    group["asset_stress_score"] = (abs(group["daily_return"])+group["rolling_volatility_30"].fillna(0)+abs(group["drawdown"]))
+
+
+features_df = pd.concat(feature_dfs,ignore_index=True)
+features_df["abnormal_move"] = (abs(features_df["daily_return"]) >2 * features_df["rolling_volatility_30"])
+caci = (features_df.groupby("date")["abnormal_move"].sum().reset_index()) #Cross-Asset Contagion Index
+caci.columns = ["date","cross_asset_contagion_index"]
+features_df = features_df.merge(caci,on="date",how="left")
+
+print("\nGenerated Features:")
+print(features_df[
+        [
+            "ticker",
+            "date",
+            "daily_return",
+            "ema_7",
+            "ema_30",
+            "ema_90",
+            "rolling_volatility_30",
+            "drawdown"
+        ]
+    ].head())
+
+print("\nShape:")
+print(features_df.shape)
+
+#validating the features
+print("\nMissing Values:")
+print(features_df[
+        [
+            "daily_return",
+            "ema_7",
+            "ema_30",
+            "ema_90",
+            "rolling_volatility_30",
+            "drawdown"
+        ]
+    ].isnull().sum()
+)
+
+print("\nSummary Statistics:")
+print(
+    features_df[
+        [
+            "daily_return",
+            "rolling_volatility_30",
+            "drawdown"
+        ]
+    ].describe()
+)
+#got -305% which is impossible so there is some error in the code and need to find it out
+extreme_returns = features_df[
+    features_df["daily_return"] < -1
+]
+
+print(extreme_returns[
+    ["ticker", "date", "close", "daily_return"]
+].head(20))
+
+#damn so its just a real historical event:2020 Oil Price Crash
+#On 20 April 2020, WTI crude oil futures went negative for the first time in history because storage facilities were full during the COVID demand collapse.
+
+features_df[["id","date","ticker", "daily_return","ema_7","ema_30","ema_90", "rolling_volatility_30","drawdown"]].to_sql("market_features",engine,if_exists="replace",index=False)
+print("\nFeature Store Created Successfully!")
+
+#validating the stored features
+print(features_df[["log_return","volatility_shock","momentum_spread","asset_stress_score"]].describe())
+
+
+print("\nCACI Summary:")
+print(features_df["cross_asset_contagion_index"].describe())
+
+
+#trying to find the days with highest cross-asset contagion index
+top_caci_days = (caci.sort_values("cross_asset_contagion_index",ascending=False).head(20))
+print(top_caci_days)
+
+#when i searched i not found any major event on 17-05-2017 , which has highest caci, but it could be due to some specific asset which had an extreme move on that day, so i will check the features_df for that date
+investigation = features_df[
+    features_df["date"] == "2017-05-17"
+][
+    [
+        "ticker",
+        "daily_return",
+        "rolling_volatility_30",
+        "abnormal_move"
+    ]
+].sort_values(
+    "daily_return"
+)
+
+print("\nInvestigation:")
+print(investigation)
