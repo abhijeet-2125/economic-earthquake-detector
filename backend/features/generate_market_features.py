@@ -50,11 +50,73 @@ for ticker, group in df.groupby("ticker"):
     feature_dfs.append(group)
 
 features_df = pd.concat(feature_dfs,ignore_index=True)
+
+#CROSS-ASSET CONTAGION INDEX (CACI)
 features_df["abnormal_move"] = (abs(features_df["daily_return"]) >2 * features_df["rolling_volatility_30"])
 caci_assets = features_df[features_df["ticker"] != "^VIX"]
-caci = (caci_assets.groupby("date")["abnormal_move"].sum().reset_index()) #Cross-Asset Contagion Index
+caci = (caci_assets.groupby("date")["abnormal_move"].sum().reset_index()) 
 caci.columns = ["date","cross_asset_contagion_index"]
 features_df = features_df.merge(caci,on="date",how="left")
+
+
+# FLIGHT TO SAFETY INDEX (FTSI)
+returns_pivot = features_df.pivot(index="date",columns="ticker",values="daily_return")
+ftsi = pd.DataFrame(index=returns_pivot.index)
+ftsi["flight_to_safety_index"] = (
+    returns_pivot["GC=F"].fillna(0) +      # Gold
+    returns_pivot["TLT"].fillna(0) +       # Bonds
+    returns_pivot["JPY=X"].fillna(0)       # Yen
+    -
+    returns_pivot["^GSPC"].fillna(0)       # Stocks
+    -
+    returns_pivot["BTC-USD"].fillna(0)     # Bitcoin
+    -
+    returns_pivot["ETH-USD"].fillna(0)     # Ethereum
+)
+
+ftsi.reset_index(inplace=True)
+features_df = features_df.merge(ftsi,on="date",how="left")
+
+#Economic earthquake index
+# DAILY FEATURE AGGREGATION
+daily_features = (features_df.groupby("date")
+    .agg(
+        {
+            "cross_asset_contagion_index": "first",
+            "flight_to_safety_index": "first",
+            "volatility_shock": "mean"
+        }
+    )
+    .reset_index())
+print("\nDaily Features Shape:")
+print(daily_features.shape)
+
+# =====================================
+# ECONOMIC EARTHQUAKE INDEX (EEI)
+# =====================================
+from scipy.stats import zscore
+daily_features["caci_z"] = zscore(daily_features["cross_asset_contagion_index"])
+daily_features["ftsi_z"] = zscore(daily_features["flight_to_safety_index"])
+daily_features["volshock_z"] = zscore(daily_features["volatility_shock"].fillna(0))
+daily_features["economic_earthquake_index"] = (
+    0.4 * daily_features["caci_z"]
+    +
+    0.4 * daily_features["ftsi_z"]
+    +
+    0.2 * daily_features["volshock_z"])
+
+
+def classify_risk(eei):  #classifying the risk
+    if eei >= 3:
+        return "CRISIS"
+    elif eei >= 2:
+        return "HIGH"
+    elif eei >= 1:
+        return "ELEVATED"
+    else:
+        return "NORMAL"
+daily_features["risk_level"] = (daily_features["economic_earthquake_index"].apply(classify_risk))
+
 
 print("\nGenerated Features:")
 print(features_df[
@@ -140,3 +202,19 @@ investigation = features_df[
 
 print("\nInvestigation:")
 print(investigation)
+
+print("\nFTSI Summary:")
+print(
+    features_df[
+        "flight_to_safety_index"
+    ].describe()
+)
+
+print("\nEEI Summary:")
+print(daily_features[ "economic_earthquake_index" ].describe())
+print("\nTop 20 EEI Days:")
+print(daily_features.sort_values("economic_earthquake_index",ascending=False).head(20))
+
+print("\nRisk Level Counts:")
+print(daily_features["risk_level"].value_counts())
+
