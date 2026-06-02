@@ -21,7 +21,11 @@ for ticker, group in df.groupby("ticker"):
 
     # Daily Return
     group["daily_return"] = (group["close"].pct_change())
-    group["log_return"] = np.log(group["close"]/group["close"].shift(1))
+    group["log_return"] = np.where((group["close"] > 0) &(group["close"].shift(1) > 0),np.log(
+        group["close"] /
+        group["close"].shift(1)
+    ),
+    np.nan)
 
     # EMA
     group["ema_7"] = (group["close"].ewm(span=7, adjust=False).mean())
@@ -34,7 +38,6 @@ for ticker, group in df.groupby("ticker"):
     # Drawdown
     rolling_peak = (group["close"].cummax())
     group["drawdown"] = ((group["close"] - rolling_peak)/rolling_peak)
-    feature_dfs.append(group)
 
     #volatility shock
     group["volatility_shock"] = (group["rolling_volatility_30"]-group["rolling_volatility_30"].ewm(span=90, adjust=False).mean())
@@ -44,11 +47,12 @@ for ticker, group in df.groupby("ticker"):
 
     #PER ASSET STREss
     group["asset_stress_score"] = (abs(group["daily_return"])+group["rolling_volatility_30"].fillna(0)+abs(group["drawdown"]))
-
+    feature_dfs.append(group)
 
 features_df = pd.concat(feature_dfs,ignore_index=True)
 features_df["abnormal_move"] = (abs(features_df["daily_return"]) >2 * features_df["rolling_volatility_30"])
-caci = (features_df.groupby("date")["abnormal_move"].sum().reset_index()) #Cross-Asset Contagion Index
+caci_assets = features_df[features_df["ticker"] != "^VIX"]
+caci = (caci_assets.groupby("date")["abnormal_move"].sum().reset_index()) #Cross-Asset Contagion Index
 caci.columns = ["date","cross_asset_contagion_index"]
 features_df = features_df.merge(caci,on="date",how="left")
 
@@ -105,7 +109,7 @@ print(extreme_returns[
 #damn so its just a real historical event:2020 Oil Price Crash
 #On 20 April 2020, WTI crude oil futures went negative for the first time in history because storage facilities were full during the COVID demand collapse.
 
-features_df[["id","date","ticker", "daily_return","ema_7","ema_30","ema_90", "rolling_volatility_30","drawdown"]].to_sql("market_features",engine,if_exists="replace",index=False)
+features_df[["id","date","ticker", "daily_return","ema_7","ema_30","ema_90", "rolling_volatility_30","drawdown","volatility_shock","momentum_spread","asset_stress_score","cross_asset_contagion_index"]].to_sql("market_features",engine,if_exists="replace",index=False)
 print("\nFeature Store Created Successfully!")
 
 #validating the stored features
