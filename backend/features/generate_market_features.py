@@ -116,6 +116,16 @@ def classify_risk(eei):  #classifying the risk
     else:
         return "NORMAL"
 daily_features["risk_level"] = (daily_features["economic_earthquake_index"].apply(classify_risk))
+daily_features[
+    [
+        "date",
+        "cross_asset_contagion_index",
+        "flight_to_safety_index",
+        "volatility_shock",
+        "economic_earthquake_index",
+        "risk_level"
+    ]].to_sql("eei_daily",engine,if_exists="replace", index=False)
+print("\nEEI Table Created Successfully!")
 
 
 print("\nGenerated Features:")

@@ -1,0 +1,84 @@
+/* Main Background */
+.stApp {
+    background-color: #0B1220;
+    color: white;
+}
+
+/* Header */
+.main-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #F8FAFC;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.sub-title {
+    text-align: center;
+    color: #94A3B8;
+    margin-bottom: 2rem;
+}
+
+/* Glass Cards */
+.metric-card {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(148,163,184,0.15);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 20px rgba(0,255,255,0.08);
+    text-align: center;
+}
+
+.metric-title {
+    color: #94A3B8;
+    font-size: 0.9rem;
+}
+
+.metric-value {
+    color: #38BDF8;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Risk Colors */
+.risk-normal {
+    color: #22C55E;
+    font-weight: bold;
+}
+
+.risk-elevated {
+    color: #FACC15;
+    font-weight: bold;
+}
+
+.risk-high {
+    color: #FB923C;
+    font-weight: bold;
+}
+
+.risk-crisis {
+    color: #EF4444;
+    font-weight: bold;
+}
+
+/* Chart Container */
+.chart-card {
+    background: rgba(30,41,59,0.7);
+    border-radius: 20px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+/* Hide Streamlit Branding */
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
+}
