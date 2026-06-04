@@ -82,3 +82,70 @@ def chart_data():
     return df.to_dict(
         orient="records"
     )
+
+@app.get("/forecast/latest")
+def latest_forecast():
+
+    query = """
+    SELECT *
+    FROM eei_forecasts
+    ORDER BY date DESC
+    LIMIT 1
+    """
+
+    df = pd.read_sql(
+        text(query),
+        engine
+    )
+
+    df["date"] = df["date"].astype(str)
+
+    return df.to_dict(
+        orient="records"
+    )[0]
+
+
+@app.get("/forecast/history")
+def forecast_history(limit: int = 100):
+
+    query = f"""
+    SELECT *
+    FROM eei_forecasts
+    ORDER BY date DESC
+    LIMIT {limit}
+    """
+
+    df = pd.read_sql(
+        text(query),
+        engine
+    )
+
+    df["date"] = df["date"].astype(str)
+
+    return df.to_dict(
+        orient="records"
+    )
+
+
+@app.get("/anomalies/top")
+def top_anomalies():
+
+    query = """
+    SELECT *
+    FROM eei_anomalies
+    WHERE anomaly = -1
+    ORDER BY anomaly_score
+    LIMIT 20
+    """
+
+    df = pd.read_sql(
+        text(query),
+        engine
+    )
+
+    df["date"] = df["date"].astype(str)
+
+    return df.to_dict(
+        orient="records"
+    )
+

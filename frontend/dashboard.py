@@ -65,6 +65,14 @@ crisis = requests.get(
     "http://127.0.0.1:8000/eei/crisis-days"
 ).json()
 
+forecast = requests.get(
+    "http://127.0.0.1:8000/forecast/latest"
+).json()
+
+anomalies = requests.get(
+    "http://127.0.0.1:8000/anomalies/top"
+).json()
+
 history_df = pd.DataFrame(history)
 crisis_df = pd.DataFrame(crisis)
 
@@ -89,7 +97,7 @@ crisis_df["event"] = crisis_df["event"].fillna(
 # METRIC CARDS
 # --------------------------------------------------
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     metric_card(
@@ -113,6 +121,12 @@ with col4:
     metric_card(
         "FTSI",
         round(latest["flight_to_safety_index"], 3)
+    )
+
+with col5:
+    metric_card(
+        "Forecast EEI",
+        round(forecast["prediction"],3)
     )
 
 # --------------------------------------------------
@@ -182,3 +196,27 @@ st.dataframe(
     ],
     use_container_width=True
 )
+
+st.markdown("---")
+st.subheader("Top Detected Market Anomalies")
+anomaly_df = pd.DataFrame(anomalies)
+st.dataframe(
+    anomaly_df[
+        [
+            "date",
+            "economic_earthquake_index",
+            "risk_level",
+            "anomaly_score"
+        ]
+    ],use_container_width=True)
+
+st.markdown("---")
+
+st.subheader("Forecast Intelligence")
+st.info(
+    f"""
+    Predicted EEI: {forecast['prediction']:.3f}
+
+    Last Actual EEI:
+    {forecast['economic_earthquake_index']:.3f}
+    """)
