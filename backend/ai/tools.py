@@ -1,6 +1,6 @@
 from langchain.tools import tool
 import pandas as pd
-from sqlaclhemy import text
+from sqlalchemy import text
 from sqlalchemy import create_engine
 from backend.database.database import engine
 

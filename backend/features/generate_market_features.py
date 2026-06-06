@@ -125,7 +125,7 @@ daily_features[
         "economic_earthquake_index",
         "risk_level"
     ]].to_sql("eei_daily",engine,if_exists="replace", index=False)
-print("\nEEI Table Created Successfully!")
+print("\nEEI Table Created Successfully")
 
 
 print("\nGenerated Features:")

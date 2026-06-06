@@ -12,8 +12,10 @@ from backend.database.database import engine
 @tool
 def get_latest_eei():
     """
-    Returns the latest Economic Earthquake Index
-    and current risk level.
+    Returns the current Economic Earthquake Index,
+    risk level, contagion score and flight-to-safety score.
+    Use this tool whenever the user asks about
+    current market conditions or risk.
     """
     query = """
     SELECT *
@@ -53,7 +55,10 @@ def get_latest_forecast():
 @tool
 def get_top_anomalies():
     """
-    Returns major historical anomalies.
+    Returns the most severe historical market crises
+    detected by the system.
+    Use this tool when comparing today's conditions
+    with past crises or anomalies.
     """
     query = """
     SELECT

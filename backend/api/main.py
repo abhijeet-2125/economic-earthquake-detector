@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy import text
 import sys
 from pathlib import Path
+from backend.ai.economic_analyst import ask_analyst
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from backend.database.database import engine
@@ -34,16 +35,9 @@ def eei_history(limit: int = 1000):
     LIMIT {limit}
     """
 
-    df = pd.read_sql(
-        text(query),
-        engine
-    )
-
+    df = pd.read_sql(text(query),engine)
     df["date"] = df["date"].astype(str)
-
-    return df.to_dict(
-        orient="records"
-    )
+    return df.to_dict(orient="records")
 
 
 @app.get("/eei/crisis-days")
@@ -72,16 +66,9 @@ def chart_data():
     ORDER BY date
     """
 
-    df = pd.read_sql(
-        text(query),
-        engine
-    )
-
+    df = pd.read_sql(text(query), engine)
     df["date"] = df["date"].astype(str)
-
-    return df.to_dict(
-        orient="records"
-    )
+    return df.to_dict(orient="records")
 
 @app.get("/forecast/latest")
 def latest_forecast():
@@ -93,16 +80,9 @@ def latest_forecast():
     LIMIT 1
     """
 
-    df = pd.read_sql(
-        text(query),
-        engine
-    )
-
+    df = pd.read_sql(text(query), engine)
     df["date"] = df["date"].astype(str)
-
-    return df.to_dict(
-        orient="records"
-    )[0]
+    return df.to_dict(orient="records")[0]
 
 
 @app.get("/forecast/history")
@@ -115,21 +95,13 @@ def forecast_history(limit: int = 100):
     LIMIT {limit}
     """
 
-    df = pd.read_sql(
-        text(query),
-        engine
-    )
-
+    df = pd.read_sql(text(query), engine)
     df["date"] = df["date"].astype(str)
-
-    return df.to_dict(
-        orient="records"
-    )
+    return df.to_dict(orient="records")
 
 
 @app.get("/anomalies/top")
 def top_anomalies():
-
     query = """
     SELECT *
     FROM eei_anomalies
@@ -138,14 +110,15 @@ def top_anomalies():
     LIMIT 20
     """
 
-    df = pd.read_sql(
-        text(query),
-        engine
-    )
-
+    df = pd.read_sql(text(query),engine)
     df["date"] = df["date"].astype(str)
+    return df.to_dict( orient="records")
 
-    return df.to_dict(
-        orient="records"
-    )
+@app.get("/analyst/chat")
+def analyst_chat(question: str):
+    answer = ask_analyst(question)
 
+    return {
+        "question": question,
+        "answer": answer
+    }
