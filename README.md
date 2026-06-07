@@ -237,6 +237,187 @@ economic-earthquake-detector/
 
 ---
 
+## Quick Start
+
+```bash
+source venv/bin/activate
+
+uvicorn backend.api.main:app --reload
+```
+
+Open another terminal:
+
+```bash
+streamlit run frontend/dashboard.py
+```
+
+## How to Run the Project step by step to test all of the archietectural layer.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/economic-earthquake-detector.git
+
+cd economic-earthquake-detector
+```
+
+---
+
+### 2. Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+```
+
+Activate:
+
+```bash
+source venv/bin/activate
+```
+
+---
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 4. Start PostgreSQL
+
+Make sure PostgreSQL is running and create the database:
+
+```sql
+CREATE DATABASE economic_earthquake;
+```
+
+Update database credentials inside:
+
+```text
+backend/database/database.py
+```
+
+---
+
+### 5. Generate EEI Data
+
+Run the data pipeline:
+
+```bash
+python backend/models/create_eei.py
+```
+
+---
+
+### 6. Run Anomaly Detection
+
+```bash
+python backend/models/detect_anomalies.py
+```
+
+This creates:
+
+```text
+eei_anomalies
+```
+
+inside PostgreSQL.
+
+---
+
+### 7. Run Forecasting
+
+```bash
+python backend/models/forecast_eei.py
+```
+
+This creates:
+
+```text
+eei_forecasts
+```
+
+inside PostgreSQL.
+
+---
+
+### 8. Install Ollama
+
+Download:
+
+https://ollama.com
+
+Pull Llama 3:
+
+```bash
+ollama pull llama3
+```
+
+Verify:
+
+```bash
+ollama run llama3
+```
+
+---
+
+### 9. Start FastAPI Backend
+
+```bash
+uvicorn backend.api.main:app --reload
+```
+
+API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+### 10. Launch Streamlit Dashboard
+
+Open a new terminal:
+
+```bash
+streamlit run frontend/dashboard.py
+```
+
+Dashboard:
+
+```text
+http://localhost:8501
+```
+
+---
+
+### 11. Use the AI Economic Analyst
+
+Example questions:
+
+```text
+What is today's risk level?
+
+Compare today's conditions with historical anomalies.
+
+What does tomorrow's forecast suggest?
+
+Are current conditions similar to the COVID crash?
+```
+
+The AI analyst uses:
+
+- PostgreSQL
+- FastAPI
+- LangChain
+- Ollama
+- Llama 3
+
+to generate responses using real project data.
+---
+
 ## Challenges Faced
 
 While building this project, I encountered several challenges:
