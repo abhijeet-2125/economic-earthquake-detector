@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-
+from streamlit_float import *
 from components.metrics import metric_card
 from components.charts import (
     create_eei_chart,
@@ -16,7 +16,7 @@ st.set_page_config(
     page_title="Economic Earthquake Detector",
     layout="wide"
 )
-
+float_init()
 # --------------------------------------------------
 # LOAD CSS
 # --------------------------------------------------
@@ -220,3 +220,50 @@ st.info(
     Last Actual EEI:
     {forecast['economic_earthquake_index']:.3f}
     """)
+
+st.markdown("---")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+chat_container = st.container()
+with chat_container:
+    with st.expander("Economic Analyst",expanded=False):
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown( message["content"])
+        question = st.chat_input("Ask about market risk...")
+        if question:
+            st.session_state.messages.append(
+                {
+                    "role": "user",
+                    "content": question
+                }
+            )
+
+            with st.chat_message("user"):
+                st.markdown(question)
+            with st.chat_message("assistant"):
+                with st.spinner("Analyzing..."):
+                    response = requests.get(
+                        "http://127.0.0.1:8000/analyst/chat",
+                        params={
+                            "question": question
+                        }
+                    )
+                    answer = response.json()["answer"]
+                    st.markdown(answer)
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer
+                }
+            )
+
+chat_container.float(
+    css="""
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 420px;
+        z-index: 999;
+    """
+)
